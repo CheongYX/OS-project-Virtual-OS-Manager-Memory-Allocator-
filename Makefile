@@ -1,12 +1,29 @@
-CC=gcc
-CFLAGS=-I./include
-BIN=bin/vm_manager
+CC = gcc
+CFLAGS = -Wall -Iinclude
+BIN = bin/vm_manager
+TEST_BIN = bin/test_fifo
 
-all:
-    $(CC) $(CFLAGS) src/main.c -o $(BIN)
+SRC = src/main.c src/fifo.c
+TEST_SRC = tests/test_fifo.c src/fifo.c
+DEPS = include/memory.h
 
-run:
-    ./$(BIN)
+.PHONY: all test clean run
+
+all: $(BIN)
+
+$(BIN): $(SRC) $(DEPS)
+	mkdir -p bin
+	$(CC) $(CFLAGS) $^ -o $@
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SRC) $(DEPS)
+	mkdir -p bin
+	$(CC) $(CFLAGS) $^ -o $@
+
+run: $(BIN)
+	./$(BIN)
 
 clean:
-    rm -f $(BIN)
+	rm -rf bin
