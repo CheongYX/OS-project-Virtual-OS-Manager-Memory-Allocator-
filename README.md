@@ -46,36 +46,3 @@ virtual-os-manager/
 ├── Makefile            # Build configuration 构建配置
 └── README.md           # This file 本文件
 ```
-
-## Contribution / 贡献指南
-
-**English**:  
-Contributions are welcome! Please fork the repository and create a pull request.
-
-**中文**:  
-欢迎贡献代码！请fork本仓库并创建pull request。
-
-## License / 许可证
-
-MIT License
-
----
-
-### Notes for GitHub:
-
-1. Create a new repository on GitHub
-
-2. Copy this README.md content
-
-3. Update the URLs with your actual GitHub username/repo
-
-4. Use GitHub's built-in task lists for progress tracking:
-
-   ```markdown
-   - [x] Basic Memory Structure
-   - [x] FIFO Algorithm
-   - [ ] Performance Statistics
-   - [ ] Multi-process Simulation
-   ```
-
-The bilingual format makes your project accessible to both English and Chinese speaking developers while maintaining professional GitHub standards. The progress table and directory structure help others quickly understand your project status.
