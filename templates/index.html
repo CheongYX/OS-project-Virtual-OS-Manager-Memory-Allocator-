@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>虚拟内存管理器可视化</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .memory-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .frame {
+            border: 2px solid #333;
+            width: 80px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .frame.allocated {
+            background-color: #a5d6a7;
+        }
+        .frame.free {
+            background-color: #ef9a9a;
+        }
+        .queue-item {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 0 5px;
+            background-color: #bbdefb;
+        }
+    </style>
+</head>
+<body>
+    <h1>虚拟内存状态监控</h1>
+    
+    <div id="memory-visualization">
+        <h2>物理内存</h2>
+        <div class="memory-container" id="physical-memory"></div>
+        
+        <h2>FIFO置换队列</h2>
+        <div id="fifo-queue"></div>
+        
+        <h2>性能统计</h2>
+        <div>
+            <p>缺页次数: <span id="faults">0</span></p>
+            <p>命中率: <span id="hit-rate">0</span>%</p>
+        </div>
+        
+        <canvas id="stats-chart" width="400" height="200"></canvas>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('stats-chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '缺页次数',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1
+                }]
+            }
+        });
+
+        function updateVisualization() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    const memoryDiv = document.getElementById('physical-memory');
+                    memoryDiv.innerHTML = '';
+                    data.physical_memory.forEach(frame => {
+                        const frameDiv = document.createElement('div');
+                        frameDiv.className = `frame ${frame.allocated ? 'allocated' : 'free'}`;
+                        frameDiv.innerHTML = `
+                            <strong>帧 ${frame.frame_id}</strong>
+                            <div>${frame.allocated ? '页 ' + frame.page_id : '空闲'}</div>
+                        `;
+                        memoryDiv.appendChild(frameDiv);
+                    });
+
+                    document.getElementById('fifo-queue').innerHTML = 
+                        data.fifo_queue.map(f => `<span class="queue-item">${f}</span>`).join('');
+
+                    document.getElementById('faults').textContent = data.stats.page_faults;
+                    document.getElementById('hit-rate').textContent = data.stats.hit_rate;
+
+                    chart.data.labels.push(new Date().toLocaleTimeString());
+                    chart.data.datasets[0].data.push(data.stats.page_faults);
+                    if (chart.data.labels.length > 15) {
+                        chart.data.labels.shift();
+                        chart.data.datasets[0].data.shift();
+                    }
+                    chart.update();
+                });
+        }
+
+        setInterval(updateVisualization, 2000);
+        updateVisualization(); 
+    </script>
+</body>
+</html>

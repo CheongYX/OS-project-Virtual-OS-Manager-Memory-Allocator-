@@ -27,3 +27,9 @@ run: $(BIN)
 
 clean:
 	rm -rf bin
+
+bin:
+	mkdir -p bin
+
+test_fifo: bin
+	gcc -Wall -Iinclude src/fifo.c tests/test_fifo.c -o bin/test_fifo
