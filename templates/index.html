@@ -1,55 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>虚拟内存管理器可视化</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Memory Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
         .memory-container {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
         }
         .frame {
-            border: 2px solid #333;
-            width: 80px;
+            border: 2px solid #3498db;
+            width: 100px;
             height: 120px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background-color: #e8f4fc;
         }
         .frame.allocated {
-            background-color: #a5d6a7;
+            background-color: #d5f5e3;
+            border-color: #27ae60;
         }
         .frame.free {
-            background-color: #ef9a9a;
+            background-color: #fadbd8;
+            border-color: #e74c3c;
+        }
+        .queue-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
         }
         .queue-item {
-            display: inline-block;
-            padding: 5px 10px;
-            margin: 0 5px;
-            background-color: #bbdefb;
+            padding: 8px 15px;
+            background-color: #d6eaf8;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #2874a6;
+        }
+        .stats-container {
+            display: flex;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background-color: #f8f9fa;
+            padding: 15px 25px;
+            border-radius: 6px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 5px;
+        }
+        #loading {
+            text-align: center;
+            margin: 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        #error {
+            color: #c0392b;
+            padding: 15px;
+            background-color: #f9ebea;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+            border-left: 4px solid #e74c3c;
+        }
+        .last-update {
+            text-align: right;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>虚拟内存状态监控</h1>
+    <h1>Virtual Memory Status Monitor</h1>
     
-    <div id="memory-visualization">
-        <h2>物理内存</h2>
-        <div class="memory-container" id="physical-memory"></div>
-        
-        <h2>FIFO置换队列</h2>
-        <div id="fifo-queue"></div>
-        
-        <h2>性能统计</h2>
-        <div>
-            <p>缺页次数: <span id="faults">0</span></p>
-            <p>命中率: <span id="hit-rate">0</span>%</p>
+    <div id="error"></div>
+    
+    <div class="panel">
+        <h2>Physical Memory Status</h2>
+        <div class="memory-container" id="physical-memory">
+        </div>
+    </div>
+    
+    <div class="panel">
+        <h2>FIFO Replacement Queue</h2>
+        <div class="queue-container" id="fifo-queue">
+        </div>
+    </div>
+    
+    <div class="panel">
+        <h2>Performance Statistics</h2>
+        <div class="stats-container">
+            <div class="stat-box">
+                <div>Page Faults</div>
+                <div class="stat-value" id="faults">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Hit Rate</div>
+                <div class="stat-value" id="hit-rate">0%</div>
+            </div>
         </div>
         
-        <canvas id="stats-chart" width="400" height="200"></canvas>
+        <canvas id="stats-chart" height="150"></canvas>
+        <div class="last-update" id="last-update">Last update: Never</div>
     </div>
+
+    <div id="loading">Loading data...</div>
 
     <script>
         const ctx = document.getElementById('stats-chart').getContext('2d');
@@ -57,49 +152,136 @@
             type: 'line',
             data: {
                 labels: [],
-                datasets: [{
-                    label: '缺页次数',
-                    data: [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1
-                }]
+                datasets: [
+                    {
+                        label: 'Page Faults',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    },
+                    {
+                        label: 'Hit Rate (%)',
+                        data: [],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        tension: 0.1,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Page Faults'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Hit Rate (%)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
             }
         });
 
-        function updateVisualization() {
-            fetch('/api/status')
-                .then(res => res.json())
-                .then(data => {
-                    const memoryDiv = document.getElementById('physical-memory');
-                    memoryDiv.innerHTML = '';
-                    data.physical_memory.forEach(frame => {
-                        const frameDiv = document.createElement('div');
-                        frameDiv.className = `frame ${frame.allocated ? 'allocated' : 'free'}`;
-                        frameDiv.innerHTML = `
-                            <strong>帧 ${frame.frame_id}</strong>
-                            <div>${frame.allocated ? '页 ' + frame.page_id : '空闲'}</div>
-                        `;
-                        memoryDiv.appendChild(frameDiv);
-                    });
-
-                    document.getElementById('fifo-queue').innerHTML = 
-                        data.fifo_queue.map(f => `<span class="queue-item">${f}</span>`).join('');
-
-                    document.getElementById('faults').textContent = data.stats.page_faults;
-                    document.getElementById('hit-rate').textContent = data.stats.hit_rate;
-
-                    chart.data.labels.push(new Date().toLocaleTimeString());
-                    chart.data.datasets[0].data.push(data.stats.page_faults);
-                    if (chart.data.labels.length > 15) {
-                        chart.data.labels.shift();
-                        chart.data.datasets[0].data.shift();
-                    }
-                    chart.update();
+        let lastData = null;
+        let updateInterval = 2000; 
+        
+        async function updateVisualization() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                
+                const response = await fetch('/api/status?t=' + Date.now());
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (!data || !data.physical_memory || !data.stats) {
+                    throw new Error("Invalid data format received from server");
+                }
+                const memoryDiv = document.getElementById('physical-memory');
+                memoryDiv.innerHTML = '';
+                
+                data.physical_memory.forEach(frame => {
+                    const frameDiv = document.createElement('div');
+                    frameDiv.className = `frame ${frame.allocated ? 'allocated' : 'free'}`;
+                    frameDiv.innerHTML = `
+                        <strong>Frame ${frame.frame}</strong>
+                        <div>${frame.allocated ? 'Page ' + frame.page : 'Free'}</div>
+                        ${frame.allocated ? `<small>Accessed: ${frame.last_accessed || 'N/A'}</small>` : ''}
+                    `;
+                    memoryDiv.appendChild(frameDiv);
                 });
+                const queueContainer = document.getElementById('fifo-queue');
+                queueContainer.innerHTML = '';
+                
+                if (data.fifo_queue && data.fifo_queue.length > 0) {
+                    data.fifo_queue.forEach(item => {
+                        const queueItem = document.createElement('div');
+                        queueItem.className = 'queue-item';
+                        queueItem.textContent = item;
+                        queueContainer.appendChild(queueItem);
+                    });
+                } else {
+                    queueContainer.innerHTML = '<div style="color:#7f8c8d">Queue is empty</div>';
+                }
+                document.getElementById('faults').textContent = data.stats.page_faults;
+                const hitRatePercent = (data.stats.hit_rate * 100).toFixed(1);
+                document.getElementById('hit-rate').textContent = `${hitRatePercent}%`;
+                const now = new Date();
+                const timeLabel = now.toLocaleTimeString();
+                
+                chart.data.labels.push(timeLabel);
+                chart.data.datasets[0].data.push(data.stats.page_faults);
+                chart.data.datasets[1].data.push(hitRatePercent);
+                if (chart.data.labels.length > 15) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(dataset => dataset.data.shift());
+                }
+                
+                chart.update();
+                lastData = data;
+                document.getElementById('last-update').textContent = 
+                    `Last update: ${now.toLocaleTimeString()}`;
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('error').textContent = 
+                    `Error: ${error.message} (Last successful update: ${new Date().toLocaleTimeString()})`;
+                document.getElementById('error').style.display = 'block';
+                if (lastData) {
+                    document.getElementById('faults').textContent = lastData.stats.page_faults;
+                    document.getElementById('hit-rate').textContent = 
+                        `${(lastData.stats.hit_rate * 100).toFixed(1)}%`;
+                }
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+    
+                setTimeout(updateVisualization, updateInterval);
+            }
         }
-
-        setInterval(updateVisualization, 2000);
-        updateVisualization(); 
+        document.addEventListener('DOMContentLoaded', updateVisualization);
     </script>
 </body>
 </html>

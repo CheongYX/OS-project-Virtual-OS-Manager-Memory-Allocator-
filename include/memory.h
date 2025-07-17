@@ -27,7 +27,7 @@ int fifo_dequeue(FIFOQueue* queue);
 
 int get_fault_count(void);
 float get_hit_rate(void);
-void simulate_accesses(void);
+void simulate_accesses(int json_mode);
 
 bool is_page_in_memory(int page_id);
 bool is_page_in_queue(FIFOQueue* queue, int page_id); 

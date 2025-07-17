@@ -29,7 +29,7 @@ A simulation of virtual memory management with page replacement algorithms (FIFO
 | ----------------------------- | ------------- | ---------------------- |
 | Basic Memory Structure        | ✅ Completed   | 2025-07-13             |
 | FIFO Algorithm Implementation | ✅ Completed   | 2023-07-15             |
-| Performance Statistics        | ⬜ Pending     | 2023-07-18             |
+| Performance Statistics        | 🟡 In Progress | 2023-07-18             |
 | Multi-process Simulation      | ⬜ Pending     | 2023-07-20             |
 | Advanced Visualization        | ⬜ Pending     | 2023-07-25             |
 

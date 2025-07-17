@@ -81,32 +81,3 @@ float get_hit_rate(void){
     int total_accesses = stats.page_faults+stats.page_hits;
     return (total_accesses == 0) ? 0.0f : (float)stats.page_hits / total_accesses;
 }
-
-void simulate_accesses(void) {
-    FIFOQueue queue;
-    fifo_init(&queue, 3); 
-
-    int access_sequence[] = {1, 2, 3, 4, 1, 2, 5}; 
-    int sequence_size = sizeof(access_sequence) / sizeof(int);
-
-    for (int i = 0; i < sequence_size; i++) {
-        int page = access_sequence[i];
-        if (is_page_in_queue(&queue, page)) {
-            stats.page_hits++;
-            printf("Page %d: Hit\n", page);
-        } else {
-            stats.page_faults++;
-            printf("Page %d: Fault\n", page);
-            
-            if (queue.size == queue.capacity) {
-                int replaced_page = fifo_dequeue(&queue);
-                printf("  -> Replaced page %d\n", replaced_page);
-            }
-            fifo_enqueue(&queue, page);
-        }
-    }
-    printf("\nTotal Page Faults: %d\n", stats.page_faults);
-    printf("Total Page Hits: %d\n", stats.page_hits);
-    printf("Hit Rate: %.2f%%\n", get_hit_rate() * 100);
-    free(queue.frames); 
-}
