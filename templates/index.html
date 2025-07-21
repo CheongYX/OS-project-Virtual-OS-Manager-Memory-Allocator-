@@ -202,27 +202,31 @@
             }
         });
 
-        let lastData = null;
-        let updateInterval = 2000; 
+        let lastValidData = null;
+        const updateInterval = 2000; 
         
         async function updateVisualization() {
             try {
                 document.getElementById('loading').style.display = 'block';
                 document.getElementById('error').style.display = 'none';
                 
-                const response = await fetch('/api/status?t=' + Date.now());
+                const response = await fetch(`/api/status?t=${Date.now()}`);
+                const responseData = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                console.log("原始API数据:", responseData); 
+                let data;
+                if (responseData.current) {
+                    data = responseData.current;
+                } else if (responseData.physical_memory) {
+                    data = responseData;
+                } else {
+                    throw new Error("无法识别的数据格式");
                 }
                 
-                const data = await response.json();
-                if (!data || !data.physical_memory || !data.stats) {
-                    throw new Error("Invalid data format received from server");
-                }
+                console.log("处理后的数据:", data); 
+
                 const memoryDiv = document.getElementById('physical-memory');
                 memoryDiv.innerHTML = '';
-                
                 data.physical_memory.forEach(frame => {
                     const frameDiv = document.createElement('div');
                     frameDiv.className = `frame ${frame.allocated ? 'allocated' : 'free'}`;
@@ -233,9 +237,9 @@
                     `;
                     memoryDiv.appendChild(frameDiv);
                 });
+
                 const queueContainer = document.getElementById('fifo-queue');
                 queueContainer.innerHTML = '';
-                
                 if (data.fifo_queue && data.fifo_queue.length > 0) {
                     data.fifo_queue.forEach(item => {
                         const queueItem = document.createElement('div');
@@ -246,38 +250,38 @@
                 } else {
                     queueContainer.innerHTML = '<div style="color:#7f8c8d">Queue is empty</div>';
                 }
+
                 document.getElementById('faults').textContent = data.stats.page_faults;
                 const hitRatePercent = (data.stats.hit_rate * 100).toFixed(1);
                 document.getElementById('hit-rate').textContent = `${hitRatePercent}%`;
+
                 const now = new Date();
-                const timeLabel = now.toLocaleTimeString();
-                
-                chart.data.labels.push(timeLabel);
+                chart.data.labels.push(now.toLocaleTimeString());
                 chart.data.datasets[0].data.push(data.stats.page_faults);
-                chart.data.datasets[1].data.push(hitRatePercent);
+                chart.data.datasets[1].data.push(parseFloat(hitRatePercent));
+                
                 if (chart.data.labels.length > 15) {
                     chart.data.labels.shift();
                     chart.data.datasets.forEach(dataset => dataset.data.shift());
                 }
                 
                 chart.update();
-                lastData = data;
-                document.getElementById('last-update').textContent = 
-                    `Last update: ${now.toLocaleTimeString()}`;
+                lastValidData = data;
+                document.getElementById('last-update').textContent = `Last update: ${now.toLocaleTimeString()}`;
                 
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('数据获取失败:', error);
                 document.getElementById('error').textContent = 
-                    `Error: ${error.message} (Last successful update: ${new Date().toLocaleTimeString()})`;
+                    `Error: ${error.message} (Last valid update: ${new Date().toLocaleTimeString()})`;
                 document.getElementById('error').style.display = 'block';
-                if (lastData) {
-                    document.getElementById('faults').textContent = lastData.stats.page_faults;
+                
+                if (lastValidData) {
+                    document.getElementById('faults').textContent = lastValidData.stats.page_faults;
                     document.getElementById('hit-rate').textContent = 
-                        `${(lastData.stats.hit_rate * 100).toFixed(1)}%`;
+                        `${(lastValidData.stats.hit_rate * 100).toFixed(1)}%`;
                 }
             } finally {
                 document.getElementById('loading').style.display = 'none';
-    
                 setTimeout(updateVisualization, updateInterval);
             }
         }
