@@ -28,10 +28,10 @@ A simulation of virtual memory management with page replacement algorithms (FIFO
 | Milestone / 里程碑            | Status / 状态 | Target Date / 目标日期 |
 | ----------------------------- | ------------- | ---------------------- |
 | Basic Memory Structure        | ✅ Completed   | 2025-07-13             |
-| FIFO Algorithm Implementation | ✅ Completed   | 2023-07-15             |
-| Performance Statistics        | 🟡 In Progress | 2023-07-18             |
-| Multi-process Simulation      | ⬜ Pending     | 2023-07-20             |
-| Advanced Visualization        | ⬜ Pending     | 2023-07-25             |
+| FIFO Algorithm Implementation | ✅ Completed   | 2025-07-15             |
+| Performance Statistics        | ✅ Completed   | 2025-07-18             |
+| Multi-process Simulation      | 🟡 In Progress | 2025-07-20             |
+| Advanced Visualization        | ⬜ Pending     | 2025-07-25             |
 
 ## Directory Structure / 目录结构
 
